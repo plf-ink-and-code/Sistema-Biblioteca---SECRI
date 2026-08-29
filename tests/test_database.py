@@ -28,3 +28,39 @@ class TestInitDb:
         fk = conn.execute("PRAGMA foreign_keys").fetchone()
         assert fk[0] == 1
         conn.close()
+
+    def test_get_db_rolls_back_on_error(self):
+        import pytest
+        # Insere um livro e força exceção: a transação deve ser revertida
+        with pytest.raises(RuntimeError):
+            with database.get_db() as conn:
+                conn.execute("INSERT INTO books (title, author) VALUES ('X', 'Y')")
+                raise RuntimeError("boom")
+        conn = database.get_connection()
+        count = conn.execute("SELECT COUNT(*) AS c FROM books").fetchone()["c"]
+        conn.close()
+        assert count == 0  # rollback funcionou
+
+    def test_indexes_created(self):
+        conn = database.get_connection()
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
+        names = [r["name"] for r in rows]
+        assert "idx_loans_book_id" in names
+        assert "idx_loans_active" in names
+        assert "idx_loans_overdue" in names
+        conn.close()
+
+    def test_deadline_days_removed(self):
+        # Simula banco antigo: recria a coluna órfã e roda init_db de novo
+        conn = database.get_connection()
+        try:
+            conn.execute("ALTER TABLE loans ADD COLUMN deadline_days INTEGER")
+            conn.commit()
+        except Exception:
+            pass
+        conn.close()
+        database.init_db()  # deve dropar a coluna
+        conn = database.get_connection()
+        cols = [c["name"] for c in conn.execute("PRAGMA table_info(loans)").fetchall()]
+        assert "deadline_days" not in cols
+        conn.close()

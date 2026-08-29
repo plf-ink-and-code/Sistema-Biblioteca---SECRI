@@ -30,7 +30,8 @@ def _send_email(smtp_cfg, to, subject, body):
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    server = smtplib.SMTP(smtp_cfg["server"], smtp_cfg["port"])
+    timeout = int(os.environ.get("SMTP_TIMEOUT", "10"))
+    server = smtplib.SMTP(smtp_cfg["server"], smtp_cfg["port"], timeout=timeout)
     server.starttls()
     server.login(smtp_cfg["email"], smtp_cfg["password"])
     recipients = [to] if isinstance(to, str) else to

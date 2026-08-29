@@ -119,6 +119,27 @@ class TestReturnBook:
         history = services.loan_history(book_id)
         assert history[0]["return_date"] is not None
 
+    def test_return_active_loan_returns_true(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        services.loan_book(book_id, "P")
+        assert services.return_book(book_id) is True
+
+    def test_return_without_active_loan_returns_false(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        # Livro nunca foi emprestado: não há empréstimo ativo para fechar.
+        assert services.return_book(book_id) is False
+
+    def test_double_return_second_is_false(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        services.loan_book(book_id, "P")
+        assert services.return_book(book_id) is True
+        # Segunda devolução não encontra empréstimo aberto.
+        assert services.return_book(book_id) is False
+        assert services.get_book(book_id)["available"] == 1
+
 
 class TestSearchBooks:
     def test_search_by_title(self):
@@ -260,6 +281,82 @@ class TestRenewLoan:
         book_id = services.list_books()[0]["id"]
         with pytest.raises(ValueError):
             services.renew_loan(book_id, "2025-06-01")
+
+class TestBooksWithStatus:
+    def test_available_book(self):
+        services.add_book("T", "A")
+        rows = services.books_with_status()
+        assert len(rows) == 1
+        assert rows[0]["status"] == "Disponível"
+        assert rows[0]["person"] == ""
+        assert rows[0]["email"] == ""
+
+    def test_loaned_book_shows_person_and_email(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        future = (date.today() + timedelta(days=5)).isoformat()
+        services.loan_book(book_id, "Ana", future, "ana@x.com")
+        rows = services.books_with_status()
+        assert rows[0]["status"] == "Alugado"
+        assert rows[0]["person"] == "Ana"
+        assert rows[0]["email"] == "ana@x.com"
+
+    def test_overdue_status(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        past = (date.today() - timedelta(days=3)).isoformat()
+        services.loan_book(book_id, "Ana", past, "ana@x.com")
+        rows = services.books_with_status()
+        assert rows[0]["status"] == "Atrasado"
+
+    def test_loaned_without_deadline_is_alugado(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        services.loan_book(book_id, "Ana")
+        rows = services.books_with_status()
+        assert rows[0]["status"] == "Alugado"
+
+    def test_ordered_by_title(self):
+        services.add_book("Zebra", "A")
+        services.add_book("Abelha", "A")
+        rows = services.books_with_status()
+        assert [r["title"] for r in rows] == ["Abelha", "Zebra"]
+
+    def test_filter_subset_preserves_order(self):
+        services.add_book("T1", "A", "Romance")
+        services.add_book("T2", "A", "Conto")
+        subset = services.filter_by_category("Romance")
+        rows = services.books_with_status(subset)
+        assert len(rows) == 1
+        assert rows[0]["title"] == "T1"
+
+    def test_empty_subset_returns_empty(self):
+        services.add_book("T1", "A")
+        assert services.books_with_status([]) == []
+
+    def test_filter_by_category_sql(self):
+        services.add_book("T1", "A", "Romance")
+        services.add_book("T2", "A", "Conto")
+        services.add_book("T3", "A", "Romance")
+        rows = services.books_with_status(category="Romance")
+        assert len(rows) == 2
+        assert all(r["category"] == "Romance" for r in rows)
+
+    def test_filter_category_none_returns_all(self):
+        services.add_book("T1", "A", "Romance")
+        services.add_book("T2", "A", "Conto")
+        rows = services.books_with_status(category=None)
+        assert len(rows) == 2
+
+    def test_returned_book_back_to_available(self):
+        services.add_book("T", "A")
+        book_id = services.list_books()[0]["id"]
+        services.loan_book(book_id, "Ana", None, "ana@x.com")
+        services.return_book(book_id)
+        rows = services.books_with_status()
+        assert rows[0]["status"] == "Disponível"
+        assert rows[0]["person"] == ""
+
 
 
 class TestDashboardStats:

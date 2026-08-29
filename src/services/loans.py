@@ -15,10 +15,20 @@ def loan_book(book_id, person, deadline_date=None, email=None):
 
 
 def return_book(book_id):
+    """Registra a devolução de um livro.
+
+    Fecha o empréstimo ativo (se houver) e marca o livro como disponível.
+    Retorna True se havia um empréstimo em aberto que foi fechado; False se o
+    livro já estava disponível (nenhum empréstimo ativo) — nesse caso o estado
+    do livro é apenas reconciliado para `available = 1`, sem falhar.
+    """
     with get_db() as conn:
-        conn.execute("UPDATE loans SET return_date = ? WHERE book_id = ? AND return_date IS NULL",
-                     (date.today().isoformat(), book_id))
+        cur = conn.execute(
+            "UPDATE loans SET return_date = ? WHERE book_id = ? AND return_date IS NULL",
+            (date.today().isoformat(), book_id))
+        closed = cur.rowcount > 0
         conn.execute("UPDATE books SET available = 1 WHERE id = ?", (book_id,))
+    return closed
 
 
 def loan_history(book_id):
@@ -56,6 +66,60 @@ def overdue_loans():
             WHERE l.return_date IS NULL AND l.deadline_date IS NOT NULL AND l.deadline_date < ?""",
             (date.today().isoformat(),)).fetchall()
         return [dict(r) for r in rows]
+
+
+def books_with_status(books=None, category=None):
+    """Retorna livros já anotados com person/email/status do empréstimo ativo.
+
+    Faz um único JOIN (books LEFT JOIN empréstimo ativo) em vez de uma query
+    por linha, eliminando o N+1 que travava o event loop no refresh da UI.
+
+    - `category`: filtra no próprio SQL (evita escanear a tabela inteira).
+    - `books`: lista já filtrada (ex.: resultado de busca); usa esses ids.
+      Se ambos forem None, retorna todos.
+    """
+    today = date.today().isoformat()
+    sql = """
+        SELECT b.id, b.code, b.title, b.author, b.category, b.available,
+               l.person AS loan_person, l.email AS loan_email,
+               l.deadline_date AS loan_deadline
+        FROM books b
+        LEFT JOIN loans l
+          ON l.book_id = b.id AND l.return_date IS NULL
+    """
+    params = ()
+    if category is not None:
+        sql += " WHERE b.category = ?"
+        params = (category,)
+    sql += " ORDER BY b.title"
+
+    with get_db() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    result = []
+    index = {} if books is not None else None
+    for r in rows:
+        if r["available"]:
+            status, person, email = "Disponível", "", ""
+        else:
+            deadline = r["loan_deadline"]
+            status = "Atrasado" if (deadline and today > deadline) else "Alugado"
+            person = r["loan_person"] or ""
+            email = r["loan_email"] or ""
+        item = {
+            "id": r["id"], "code": r["code"] or "", "title": r["title"],
+            "author": r["author"], "category": r["category"] or "",
+            "person": person, "email": email, "status": status,
+        }
+        if index is None:
+            result.append(item)
+        else:
+            index[r["id"]] = item
+
+    if index is None:
+        return result
+    # Preserva a ordem/filtro da lista recebida
+    return [index[b["id"]] for b in books if b["id"] in index]
 
 
 def top_loaned_books(limit=10):

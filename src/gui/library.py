@@ -1,4 +1,4 @@
-from nicegui import ui
+from nicegui import ui, run, app
 from datetime import datetime
 import services
 import notifier
@@ -22,6 +22,7 @@ class LibraryPage:
                 ui.label("Biblioteca SECRI").classes("text-2xl font-bold").style(f"color: {ACCENT}")
                 ui.space()
                 ui.button("Alunos", on_click=lambda: ui.navigate.to("/alunos")).props("flat")
+                ui.button(icon="logout", on_click=self._logout).props("flat round").tooltip("Sair")
 
             stats = services.dashboard_stats()
             with ui.row().classes("w-full gap-4"):
@@ -42,7 +43,7 @@ class LibraryPage:
                     ui.button("Renovar", on_click=self._renew).props("color=amber")
                     ui.separator().props("vertical").classes("h-8")
                     ui.button("Relatórios", on_click=self._reports).props("flat")
-                    ui.button("Notificar Gestor", on_click=self._notify_manager).props("flat color=warning")
+                    self.btn_notify = ui.button("Notificar Gestor", on_click=self._notify_manager).props("flat color=warning")
                     ui.space()
                     self.search_input = ui.input(placeholder="Buscar...").props("dense outlined clearable").classes("w-48")
                     self.search_input.on("keydown.enter", self._search)
@@ -89,8 +90,11 @@ class LibraryPage:
                 self.label_event = ui.label("").classes("text-sm").style(f"color: {GREEN}")
 
         self._refresh()
-        ui.timer(3600, self._check_overdue)
 
+
+    def _logout(self):
+        app.storage.user.clear()
+        ui.navigate.to("/login")
 
     def _card(self, title, value, color):
         with ui.card().classes("flex-1 min-w-[140px]").style("background-color: #2a2a3e"):
@@ -122,35 +126,31 @@ class LibraryPage:
     def _on_done(self, msg):
         self._refresh()
         self._set_event(msg)
+        try:
+            username = app.storage.user.get("username", "?")
+            services.log_action("livro", detail=msg, username=username)
+        except Exception:
+            pass
 
     def _refresh(self, books=None):
-        data = books or services.list_books()
-        rows = []
-        for b in data:
-            person = email = ""
-            if not b["available"]:
-                loan = services.active_loan(b["id"])
-                person = (loan or {}).get("person") or ""
-                email = (loan or {}).get("email") or ""
-            status = "Disponível" if b["available"] else ("Atrasado" if services.is_overdue(b["id"]) else "Alugado")
-            rows.append({"id": b["id"], "code": b["code"] or "", "title": b["title"],
-                         "author": b["author"], "category": b["category"] or "",
-                         "person": person, "email": email, "status": status})
+        rows = services.books_with_status(books)
         self.table.rows = rows
         self.table.update()
-        self.label_results.text = f"{len(data)} livros"
+        self.label_results.text = f"{len(rows)} livros"
 
     def _apply_filters(self, _=None):
         cat = self.filter_cat.value
         status = self.filter_status.value
-        books = services.filter_by_category(cat) if cat != "Todas" else services.list_books()
+        rows = services.books_with_status(category=None if cat == "Todas" else cat)
         if status == "Disponíveis":
-            books = [b for b in books if b["available"]]
+            rows = [r for r in rows if r["status"] == "Disponível"]
         elif status == "Alugados":
-            books = [b for b in books if not b["available"] and not services.is_overdue(b["id"])]
+            rows = [r for r in rows if r["status"] == "Alugado"]
         elif status == "Atrasados":
-            books = [b for b in books if not b["available"] and services.is_overdue(b["id"])]
-        self._refresh(books)
+            rows = [r for r in rows if r["status"] == "Atrasado"]
+        self.table.rows = rows
+        self.table.update()
+        self.label_results.text = f"{len(rows)} livros"
 
     def _search(self, _=None):
         term = self.search_input.value.strip() if self.search_input.value else ""
@@ -190,18 +190,13 @@ class LibraryPage:
     def _reports(self):
         dialog_reports(self._set_event)
 
-    def _notify_manager(self):
+    async def _notify_manager(self):
+        self.btn_notify.props("loading disable")
         try:
-            result = notifier.send_manager_notification()
+            result = await run.io_bound(notifier.send_manager_notification)
             self._set_event(result)
             ui.notify(result, type="positive")
         except Exception as e:
             ui.notify(f"Falha: {e}", type="negative")
-
-    def _check_overdue(self):
-        try:
-            sent = notifier.send_student_notifications()
-            if sent:
-                self._set_event(f"{sent} aluno(s) notificado(s)")
-        except Exception:
-            pass
+        finally:
+            self.btn_notify.props(remove="loading disable")

@@ -1,4 +1,4 @@
-from nicegui import ui
+from nicegui import ui, app
 import services
 
 ACCENT = "#89b4fa"
@@ -37,39 +37,33 @@ class StudentsPage:
         self.table.update()
 
     def _dialog_add(self):
-        with ui.dialog() as dlg, ui.card().style("width: 380px"):
-            ui.label("Novo Aluno").classes("text-lg font-bold").style(f"color: {ACCENT}")
-            name = ui.input("Nome *")
-            email = ui.input("E-mail").props("type=email")
-            with ui.row().classes("w-full justify-end gap-2"):
-                ui.button("Cancelar", on_click=dlg.close).props("flat")
-                def save():
-                    if not name.value.strip():
-                        ui.notify("Nome obrigatório", type="negative")
-                        return
-                    services.add_student(name.value.strip(), email.value.strip(), None)
-                    dlg.close()
-                    self._refresh()
-                    ui.notify("Aluno cadastrado ✓", type="positive")
-                ui.button("Salvar", on_click=save).props("color=primary")
-        dlg.open()
+        self._student_dialog(title="Novo Aluno", success_msg="Aluno cadastrado ✓",
+                             on_save=lambda name, email: services.add_student(name, email, None))
 
     def _edit_student(self, e):
         row = e.args
+        self._student_dialog(title="Editar Aluno", success_msg="Aluno atualizado ✓",
+                             name=row["name"], email=row["email"],
+                             on_save=lambda name, email: services.edit_student(row["id"], name, email, None))
+
+    def _student_dialog(self, title, on_save, success_msg, name="", email=""):
         with ui.dialog() as dlg, ui.card().style("width: 380px"):
-            ui.label("Editar Aluno").classes("text-lg font-bold").style(f"color: {ACCENT}")
-            name = ui.input("Nome *", value=row["name"])
-            email = ui.input("E-mail", value=row["email"]).props("type=email")
+            ui.label(title).classes("text-lg font-bold").style(f"color: {ACCENT}")
+            name_in = ui.input("Nome *", value=name)
+            email_in = ui.input("E-mail", value=email).props("type=email")
             with ui.row().classes("w-full justify-end gap-2"):
                 ui.button("Cancelar", on_click=dlg.close).props("flat")
+
                 def save():
-                    if not name.value.strip():
+                    if not name_in.value.strip():
                         ui.notify("Nome obrigatório", type="negative")
                         return
-                    services.edit_student(row["id"], name.value.strip(), email.value.strip(), None)
+                    on_save(name_in.value.strip(), email_in.value.strip())
                     dlg.close()
                     self._refresh()
-                    ui.notify("Aluno atualizado ✓", type="positive")
+                    ui.notify(success_msg, type="positive")
+                    self._audit(f"{title}: {name_in.value.strip()}")
+
                 ui.button("Salvar", on_click=save).props("color=primary")
         dlg.open()
 
@@ -83,5 +77,13 @@ class StudentsPage:
                     services.remove_student(row["id"])
                     dlg.close()
                     self._refresh()
+                    self._audit(f"Removeu aluno: {row['name']}")
                 ui.button("Remover", on_click=confirm).props("color=negative")
         dlg.open()
+
+    def _audit(self, detail):
+        try:
+            username = app.storage.user.get("username", "?")
+            services.log_action("aluno", detail=detail, username=username)
+        except Exception:
+            pass

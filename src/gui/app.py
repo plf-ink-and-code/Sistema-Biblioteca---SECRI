@@ -1,6 +1,7 @@
 from nicegui import ui
 from gui.library import LibraryPage
 from gui.students import StudentsPage
+from gui.login import build_login
 
 QUASAR_PT = """<script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 def setup_pages():
+    @ui.page("/login")
+    def login_page():
+        build_login()
+
     @ui.page("/")
     def main_page():
         ui.add_head_html(QUASAR_PT)

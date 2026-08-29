@@ -5,3 +5,12 @@ data/
 .pytest_cache/
 .ruff_cache/
 .kiro/
+
+# Cobertura de testes
+.coverage
+htmlcov/
+
+# Artefatos Node (usados só para gerar diagramas do README)
+node_modules/
+package.json
+package-lock.json
