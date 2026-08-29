@@ -12,6 +12,10 @@ Acesse: **http://localhost:8080**
 
 O container reinicia automaticamente se a máquina reiniciar.
 
+> Para acessar de **outro PC na mesma rede** (incluindo quando o servidor roda em
+> **WSL2**), veja [docs/ACESSO-REDE.md](docs/ACESSO-REDE.md). `localhost` só
+> funciona na própria máquina; de outro PC use o IP do servidor.
+
 ## Funcionalidades
 
 - Login de administrador (app protegido por autenticação)
