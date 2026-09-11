@@ -14,3 +14,8 @@ htmlcov/
 node_modules/
 package.json
 package-lock.json
+
+# Credenciais / secrets (ex.: JSON da Service Account do Google Drive)
+secrets/
+*.gdrive.json
+gdrive*.json

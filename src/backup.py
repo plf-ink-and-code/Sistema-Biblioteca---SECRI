@@ -12,9 +12,13 @@ Config via env:
 import os
 import sqlite3
 import glob
+import logging
 from datetime import datetime
 
 import database
+import backup_remote
+
+logger = logging.getLogger("biblioteca.backup")
 
 _PREFIX = "biblioteca-"
 _SUFFIX = ".db"
@@ -69,7 +73,17 @@ def rotate(keep: int | None = None) -> list[str]:
 
 
 def run_backup() -> str:
-    """Cria um backup e aplica a rotação. Retorna o caminho do backup criado."""
+    """Cria um backup, aplica a rotação local e (se configurado) envia ao Drive.
+
+    O envio off-site é opt-in (ver backup_remote). Uma falha no upload é logada
+    mas NÃO derruba o backup local — a cópia local permanece íntegra.
+    """
     path = create_backup()
     rotate()
+    try:
+        file_id = backup_remote.send_backup(path)
+        if file_id:
+            logger.info("backup enviado ao Drive (id=%s)", file_id)
+    except Exception:
+        logger.exception("envio do backup ao Google Drive falhou")
     return path

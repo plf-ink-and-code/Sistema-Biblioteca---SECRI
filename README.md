@@ -43,6 +43,15 @@ Copie `.env.example` para `.env` e preencha:
 cp .env.example .env
 ```
 
+## Backup
+
+O banco é copiado automaticamente para `data/backups/` (cópia consistente via
+`sqlite3.backup()`), com rotação (mantém `BACKUP_KEEP`, padrão 7). O job roda a
+cada `BACKUP_INTERVAL` (padrão 24h) e uma vez no startup.
+
+Para enviar os backups **para fora da máquina** (Google Drive, via Service
+Account — grátis, opt-in), veja [docs/GOOGLE-DRIVE-BACKUP.md](docs/GOOGLE-DRIVE-BACKUP.md).
+
 ## Autenticação
 
 O app inteiro fica protegido por login (admin único). As credenciais vêm de
