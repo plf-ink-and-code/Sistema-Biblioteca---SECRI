@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biblioteca SECRI — Como usar</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css" id="theme">
+  <style>
+    :root { --accent: #18b69b; }
+    .reveal h1, .reveal h2, .reveal h3 { color: #141e12; text-transform: none; }
+    .reveal h2 { font-size: 1.5em; margin-bottom: .4em; }
+    .reveal .accent { color: var(--accent); }
+    .reveal section img.screen {
+      max-height: 44vh; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.18); border: 1px solid #e2e6e2;
+    }
+    .reveal .passos { font-size: 0.68em; text-align: left; display: inline-block; margin-top:.3em; }
+    .reveal .passos li { margin: .22em 0; }
+    .reveal .tag {
+      display:inline-block; padding:.15em .6em; border-radius:999px;
+      font-size:.5em; font-weight:600; vertical-align:middle;
+    }
+    .tag.verde { background:#e9f9ee; color:#208368; }
+    .tag.amarelo { background:#fff1e7; color:#f76808; }
+    .tag.vermelho { background:#ffe9ee; color:#ca244d; }
+    .reveal .legenda { font-size:.62em; color:#6b716a; margin-top:.4em; }
+    .reveal .faq {
+      list-style: none; margin: 0.5em auto 0; padding: 0;
+      max-width: 82%; text-align: left; font-size: 0.74em;
+    }
+    .reveal .faq li {
+      background:#fcfdfc; border:1px solid #e2e6e2; border-radius:10px;
+      padding:.5em .9em; margin:.4em 0; line-height:1.35;
+    }
+    .reveal .big { font-size: 1.15em; }
+    .reveal .center { text-align:center; }
+    .cards-grid { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; font-size:.58em; }
+    .mini-card { border:1px solid #e2e6e2; border-radius:10px; padding:12px 16px; min-width:140px; background:#fcfdfc; }
+    .mini-card .n { font-size:1.7em; font-weight:700; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <!-- Capa -->
+  <section>
+    <h1 class="accent">Biblioteca SECRI</h1>
+    <h3>Como usar o sistema</h3>
+    <aside class="notes">Boas-vindas. A ideia aqui é mostrar na prática como mexer no sistema no dia a dia. Qualquer um consegue — é só clicar e digitar. Avance com as setas do teclado ou clicando.</aside>
+  </section>
+
+  <!-- O que é -->
+  <section>
+    <h2>O que é o sistema</h2>
+    <p class="big">É onde a gente controla os livros da biblioteca:
+       quem levou, quando precisa devolver e o que ainda tem disponível.</p>
+    <p class="legenda">Funciona no navegador, igual abrir um site.</p>
+    <aside class="notes">Pensa nele como o caderno de controle da biblioteca, só que no computador. Ele guarda os empréstimos, avisa dos atrasos e mostra na hora quantas cópias de cada livro existem.</aside>
+  </section>
+
+  <!-- Entrar -->
+  <section>
+    <h2>Entrar</h2>
+    <img class="screen" src="img/s_login.png" alt="Tela de login">
+    <ul class="passos">
+      <li>Abra o navegador e digite o endereço do sistema</li>
+      <li>Coloque o usuário e a senha, e clique em Entrar</li>
+    </ul>
+    <aside class="notes">O endereço eu passo pra vocês. O usuário e a senha são os que combinamos. Pra sair, tem o botãozinho no canto direito de cima.</aside>
+  </section>
+
+  <!-- Tela principal -->
+  <section>
+    <h2>A tela principal</h2>
+    <img class="screen" src="img/s_home.png" alt="Tela principal">
+    <p class="legenda">Em cima os números, no meio os botões e a busca, embaixo a lista de livros.</p>
+    <aside class="notes">A tela tem três partes: o resumo em números lá no topo, a barra de botões no meio e a lista de livros embaixo. Vamos passar por cada uma.</aside>
+  </section>
+
+  <!-- Números -->
+  <section>
+    <h2>Os números de cima</h2>
+    <div class="cards-grid">
+      <div class="mini-card"><div class="n accent">1.580</div>Títulos</div>
+      <div class="mini-card"><div class="n accent">1.673</div>Exemplares</div>
+      <div class="mini-card"><div class="n" style="color:#30a46c">1.643</div>Disponíveis</div>
+      <div class="mini-card"><div class="n" style="color:#f76808">30</div>Emprestados</div>
+      <div class="mini-card"><div class="n" style="color:#ca244d">10</div>Atrasados</div>
+    </div>
+    <p class="legenda">Título é o nome do livro. Exemplar é cada cópia física —
+       um mesmo título pode ter várias.<br>
+       Clicando num número, a lista embaixo já filtra por ele.</p>
+    <aside class="notes">Vale explicar a diferença: um título pode ter vários exemplares. "O menino das pernas compridas", por exemplo, tem 50 cópias. E dá pra clicar em qualquer número desses pra filtrar a lista — o que você clicou fica destacado.</aside>
+  </section>
+
+  <!-- Tema -->
+  <section>
+    <h2>Tela clara ou escura</h2>
+    <img class="screen" src="img/s_home_escuro.png" alt="Tema escuro">
+    <p class="legenda">O botão de sol/lua no canto de cima troca entre as duas.</p>
+    <aside class="notes">É questão de gosto. Quem cansa a vista prefere a tela escura; quem gosta de claro deixa no claro. A escolha fica guardada no navegador.</aside>
+  </section>
+
+  <!-- Encontrar -->
+  <section>
+    <h2>Encontrar um livro</h2>
+    <img class="screen" src="img/s_busca.png" alt="Busca">
+    <ul class="passos">
+      <li>Pela busca: digite o título ou o autor e aperte Enter</li>
+      <li>Pelas letras A–Z: mostra os livros que começam com aquela letra</li>
+      <li>Pelos filtros de categoria e situação</li>
+    </ul>
+    <aside class="notes">Tem três jeitos de achar. A busca procura no título e no autor. As letras filtram pela inicial. E dá pra combinar com os filtros de categoria e situação.</aside>
+  </section>
+
+  <!-- Ler a lista -->
+  <section>
+    <h2>Entendendo a lista</h2>
+    <img class="screen" src="img/s_home.png" alt="Tabela">
+    <p class="legenda">
+      A coluna "Disponível" diz quantas cópias estão livres sobre o total (ex.: 1/1).
+      A situação aparece colorida:
+      <span class="tag verde">Disponível</span>
+      <span class="tag amarelo">Esgotado</span>
+      <span class="tag vermelho">Atrasado</span>
+    </p>
+    <aside class="notes">O que mais importa fica logo depois do título: a coluna Disponível. Se diz 3/5, são três cópias livres de cinco. Verde quer dizer que tem cópia; amarelo é que acabaram; vermelho é que tem alguma atrasada.</aside>
+  </section>
+
+  <!-- Emprestar -->
+  <section>
+    <h2>Emprestar um livro</h2>
+    <img class="screen" src="img/s_alugar.png" alt="Janela de empréstimo">
+    <ul class="passos">
+      <li>Clique na linha do livro para marcá-lo</li>
+      <li>Clique em Alugar</li>
+      <li>Digite o nome do aluno (e-mail e data são opcionais)</li>
+      <li>Clique em Confirmar</li>
+    </ul>
+    <aside class="notes">Marca a linha, clica em Alugar. A janela mostra quantas cópias estão livres. Se tiver tudo emprestado, ele avisa e não deixa. O nome do aluno é o que importa; se já estiver cadastrado, o e-mail vem sozinho.</aside>
+  </section>
+
+  <!-- Devolver / Renovar -->
+  <section>
+    <h2>Devolver e renovar</h2>
+    <p class="big center">Para devolver: marque o livro, clique em Devolver e confirme.</p>
+    <p class="big center">Para renovar: marque o livro, clique em Renovar e escolha a nova data.</p>
+    <p class="legenda">Quando você devolve, a cópia volta a ficar disponível na hora.</p>
+    <aside class="notes">Devolver encerra o empréstimo e libera a cópia na mesma hora. Renovar só empurra a data de devolução de um empréstimo que ainda está aberto. Nos dois casos, marque a linha antes.</aside>
+  </section>
+
+  <!-- Cadastrar livro -->
+  <section>
+    <h2>Cadastrar um livro</h2>
+    <img class="screen" src="img/s_adicionar.png" alt="Janela de cadastro de livro">
+    <ul class="passos">
+      <li>Clique em Adicionar e preencha título e autor (os dois são obrigatórios)</li>
+      <li>Em Cópias, coloque quantos exemplares desse livro a biblioteca tem</li>
+      <li>Para corrigir, use Editar; para tirar da lista, use Remover</li>
+    </ul>
+    <aside class="notes">Pra cadastrar, só título e autor são obrigatórios. O campo Cópias é a quantidade de exemplares: se tem três iguais, coloca 3. Editar e Remover mexem na linha que estiver marcada.</aside>
+  </section>
+
+  <!-- Alunos -->
+  <section>
+    <h2>Cadastro de alunos</h2>
+    <img class="screen" src="img/s_alunos.png" alt="Página de alunos">
+    <ul class="passos">
+      <li>Entre pela opção Alunos, no topo da tela</li>
+      <li>Clique em Novo Aluno e preencha nome e e-mail</li>
+      <li>Depois, na hora de emprestar, o nome já aparece como sugestão</li>
+    </ul>
+    <aside class="notes">Cadastrar aluno não é obrigatório, mas ajuda bastante: na hora do empréstimo o nome aparece sozinho e o e-mail também, o que serve pros avisos de atraso. Dá pra editar ou remover um aluno pelos ícones ao lado.</aside>
+  </section>
+
+  <!-- Relatórios -->
+  <section>
+    <h2>Relatórios</h2>
+    <img class="screen" src="img/s_relatorios.png" alt="Relatórios">
+    <p class="legenda">Mostra os livros e os alunos que mais aparecem. Dá para exportar em PDF.</p>
+    <aside class="notes">Aqui aparecem os livros mais emprestados e os alunos que mais pegam livros. Se precisar imprimir ou mandar pra alguém, é só exportar em PDF.</aside>
+  </section>
+
+  <!-- Dúvidas -->
+  <section>
+    <h2>Dúvidas comuns</h2>
+    <ul class="faq">
+      <li>Apareceu "Esgotado": todas as cópias estão emprestadas, é só esperar uma devolução.</li>
+      <li>Atrasos: o sistema avisa os alunos por e-mail sozinho.</li>
+      <li>Errou alguma coisa: dá pra editar ou devolver, nada fica travado.</li>
+      <li>Fechou sem querer: abra o endereço de novo e entre.</li>
+    </ul>
+    <aside class="notes">Deixa o pessoal tranquilo: quase tudo dá pra desfazer. "Esgotado" não é erro, é só que não sobrou cópia. E os avisos de atraso saem automático.</aside>
+  </section>
+
+  <!-- Fim -->
+  <section>
+    <h1 class="accent">É isso!</h1>
+    <p class="big">Qualquer dúvida, é só me chamar.</p>
+    <aside class="notes">Encerramento. Abra pra perguntas e sugira que pratiquem com um livro de teste.</aside>
+  </section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    // escala consistente em qualquer tela (notebook ou monitor grande):
+    width: 1280,
+    height: 720,
+    margin: 0.06,
+    minScale: 0.2,
+    maxScale: 1.5,
+    center: true,
+    plugins: [ RevealNotes ],
+  });
+</script>
+</body>
+</html>

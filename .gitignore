@@ -14,11 +14,17 @@ htmlcov/
 # scripts de geração do acervo, fontes brutas (PDF/xlsx/CSV)
 e2e_out/
 tests/e2e_*.py
+tests/shots_*.py
+tests/make_pdf.py
 tools/
 copias_fonte.txt
 livros_unificado.csv
 *.pdf
 *.xlsx
+
+# Exceção: o slide de apresentação (pronto) É versionado
+!docs/slides/
+!docs/slides/**
 
 # Artefatos Node (usados só para gerar diagramas do README)
 node_modules/
