@@ -10,6 +10,16 @@ data/
 .coverage
 htmlcov/
 
+# Artefatos locais (não versionados): screenshots e2e, testes de browser,
+# scripts de geração do acervo, fontes brutas (PDF/xlsx/CSV)
+e2e_out/
+tests/e2e_*.py
+tools/
+copias_fonte.txt
+livros_unificado.csv
+*.pdf
+*.xlsx
+
 # Artefatos Node (usados só para gerar diagramas do README)
 node_modules/
 package.json

@@ -19,9 +19,13 @@ O container reinicia automaticamente se a máquina reiniciar.
 ## Funcionalidades
 
 - Login de administrador (app protegido por autenticação)
+- **Tema claro/escuro** com alternância (toggle no cabeçalho); claro é o padrão
+- **Múltiplos exemplares por livro** (campo `copies`): a disponibilidade é
+  `cópias − empréstimos ativos`; o empréstimo mostra "N de M disponíveis" e
+  bloqueia quando esgota
 - Backup automático do banco com rotação
 - Registro de auditoria das ações (quem fez o quê)
-- Cadastro de livros (título, autor, categoria, ano, código)
+- Cadastro de livros (título, autor, categoria, ano, código, cópias)
 - Empréstimo com prazo de devolução e e-mail do aluno
 - Devolução com confirmação
 - Renovação de empréstimo
@@ -30,10 +34,11 @@ O container reinicia automaticamente se a máquina reiniciar.
 - Notificação manual para o gestor (relatório consolidado)
 - Cadastro de alunos (página /alunos) com autocomplete no empréstimo
 - Busca por título, autor ou categoria
-- Filtros por categoria e status
+- Filtros por categoria e status; **filtro alfabético A–Z** pela inicial do título
+- Dashboard com **cards clicáveis** que filtram a tabela (o card ativo fica destacado)
 - Relatórios (top livros, top alunos)
 - Exportação de relatório em PDF
-- Dashboard com métricas (total, disponíveis, alugados, atrasados, devoluções/mês)
+- Dashboard com métricas (títulos, exemplares, disponíveis, emprestados, atrasados, devoluções/mês)
 
 ## Configuração
 
@@ -257,19 +262,40 @@ graph LR
 │   │   └── utils.py         # Formatação, validação
 │   └── gui/
 │       ├── app.py           # Rotas
+│       ├── theme.py         # Tema central (dark/light, tokens, componentes)
 │       ├── login.py         # Página de login
 │       ├── library.py       # Página principal
 │       ├── dialogs.py       # Diálogos (adicionar, editar, alugar...)
 │       ├── students.py      # Página de alunos
 │       └── pdf.py           # Exportação PDF
-├── tests/                   # 101 testes (pytest) + benchmark.py
+├── tests/                   # testes (pytest) + benchmark.py
 ├── data/                    # Banco SQLite (volume Docker, gitignored)
-├── seed.py                  # Dados de teste
+├── livros.json              # Acervo (fonte do seed): [{title,author,category,year,copies}]
+├── seed.py                  # Popula o banco a partir de livros.json
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
 ```
+
+## Acervo e seed
+
+`seed.py` popula a tabela `books` a partir de **`livros.json`** (lista de
+`{title, author, category, year, copies}`). `copies` é o total de exemplares
+(padrão 1). Popular dados de teste:
+
+```bash
+docker exec -e PYTHONPATH=/app/src <container> python /app/seed.py
+```
+
+> `seed.py` é **destrutivo** (recria livros/empréstimos com dados de
+> demonstração). Para testar sem tocar o banco real, use `DB_PATH=/tmp/test.db`.
+
+## Tema (claro/escuro)
+
+A UI tem tema **claro** (padrão) e **escuro**, alternáveis pelo botão de
+sol/lua no cabeçalho. Toda a aparência vem de `src/gui/theme.py` (fonte única de
+cores, tokens e componentes). A preferência fica salva na sessão do navegador.
 
 ## Stack
 

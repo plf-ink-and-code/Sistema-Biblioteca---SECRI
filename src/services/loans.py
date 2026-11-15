@@ -2,32 +2,64 @@ from database import get_db
 from datetime import date
 
 
-def loan_book(book_id, person, deadline_date=None, email=None):
+def active_loan_count(conn, book_id):
+    """Nº de empréstimos ativos (não devolvidos) de um livro."""
+    return conn.execute(
+        "SELECT COUNT(*) AS c FROM loans WHERE book_id = ? AND return_date IS NULL",
+        (book_id,),
+    ).fetchone()["c"]
+
+
+def available_count(book_id):
+    """Exemplares disponíveis = copies - empréstimos ativos (nunca < 0)."""
     with get_db() as conn:
-        book = conn.execute("SELECT available FROM books WHERE id = ?", (book_id,)).fetchone()
+        book = conn.execute("SELECT copies FROM books WHERE id = ?", (book_id,)).fetchone()
         if not book:
             raise ValueError("Livro não encontrado")
-        if not book["available"]:
-            raise ValueError("Livro já está alugado")
-        conn.execute("INSERT INTO loans (book_id, person, loan_date, deadline_date, email) VALUES (?, ?, ?, ?, ?)",
-                     (book_id, person, date.today().isoformat(), deadline_date, email or None))
-        conn.execute("UPDATE books SET available = 0 WHERE id = ?", (book_id,))
+        return max(0, book["copies"] - active_loan_count(conn, book_id))
+
+
+def _sync_available(conn, book_id):
+    """Reconcilia o booleano legado `available` a partir da contagem de cópias."""
+    book = conn.execute("SELECT copies FROM books WHERE id = ?", (book_id,)).fetchone()
+    if not book:
+        return
+    avail = 1 if active_loan_count(conn, book_id) < book["copies"] else 0
+    conn.execute("UPDATE books SET available = ? WHERE id = ?", (avail, book_id))
+
+
+def loan_book(book_id, person, deadline_date=None, email=None):
+    with get_db() as conn:
+        book = conn.execute("SELECT copies FROM books WHERE id = ?", (book_id,)).fetchone()
+        if not book:
+            raise ValueError("Livro não encontrado")
+        if active_loan_count(conn, book_id) >= book["copies"]:
+            raise ValueError("Não há exemplares disponíveis (todas as cópias emprestadas)")
+        conn.execute(
+            "INSERT INTO loans (book_id, person, loan_date, deadline_date, email) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (book_id, person, date.today().isoformat(), deadline_date, email or None))
+        _sync_available(conn, book_id)
 
 
 def return_book(book_id):
-    """Registra a devolução de um livro.
+    """Registra a devolução de UM exemplar do livro.
 
-    Fecha o empréstimo ativo (se houver) e marca o livro como disponível.
-    Retorna True se havia um empréstimo em aberto que foi fechado; False se o
-    livro já estava disponível (nenhum empréstimo ativo) — nesse caso o estado
-    do livro é apenas reconciliado para `available = 1`, sem falhar.
+    Fecha o empréstimo ativo mais antigo (se houver) e reconcilia a
+    disponibilidade. Retorna True se havia empréstimo em aberto fechado;
+    False se não havia nenhum ativo (estado apenas reconciliado).
     """
     with get_db() as conn:
-        cur = conn.execute(
-            "UPDATE loans SET return_date = ? WHERE book_id = ? AND return_date IS NULL",
-            (date.today().isoformat(), book_id))
-        closed = cur.rowcount > 0
-        conn.execute("UPDATE books SET available = 1 WHERE id = ?", (book_id,))
+        loan = conn.execute(
+            "SELECT id FROM loans WHERE book_id = ? AND return_date IS NULL "
+            "ORDER BY loan_date ASC, id ASC LIMIT 1",
+            (book_id,)).fetchone()
+        closed = False
+        if loan:
+            conn.execute("UPDATE loans SET return_date = ? WHERE id = ?",
+                         (date.today().isoformat(), loan["id"]))
+            closed = True
+        _sync_available(conn, book_id)
     return closed
 
 
@@ -68,48 +100,80 @@ def overdue_loans():
         return [dict(r) for r in rows]
 
 
-def books_with_status(books=None, category=None):
-    """Retorna livros já anotados com person/email/status do empréstimo ativo.
+def books_with_status(books=None, category=None, initial=None):
+    """Retorna livros anotados com disponibilidade por cópias e empréstimo ativo.
 
-    Faz um único JOIN (books LEFT JOIN empréstimo ativo) em vez de uma query
-    por linha, eliminando o N+1 que travava o event loop no refresh da UI.
+    Agora um livro pode ter VÁRIOS empréstimos ativos (copies > 1). Agregamos
+    por livro:
+      - active     = nº de empréstimos ativos
+      - available_count = copies - active
+      - status: "Disponível" (há exemplar livre), "Esgotado" (0 livres) ou
+        "Atrasado" (há exemplar livre? não — se algum ativo está vencido e
+        não há exemplar livre, marca atraso). Mostramos person/email do
+        empréstimo ativo mais recente (referência).
 
-    - `category`: filtra no próprio SQL (evita escanear a tabela inteira).
-    - `books`: lista já filtrada (ex.: resultado de busca); usa esses ids.
-      Se ambos forem None, retorna todos.
+    Filtros no SQL:
+      - category: igualdade.
+      - initial: inicial do título. "0-9" = começa com dígito; letra = LIKE 'X%'.
     """
     today = date.today().isoformat()
     sql = """
-        SELECT b.id, b.code, b.title, b.author, b.category, b.available,
-               l.person AS loan_person, l.email AS loan_email,
-               l.deadline_date AS loan_deadline
+        SELECT b.id, b.code, b.title, b.author, b.category, b.copies,
+               COUNT(l.id) AS active,
+               SUM(CASE WHEN l.deadline_date IS NOT NULL AND l.deadline_date < ?
+                        THEN 1 ELSE 0 END) AS overdue_active,
+               MAX(l.loan_date) AS last_loan_date
         FROM books b
         LEFT JOIN loans l
           ON l.book_id = b.id AND l.return_date IS NULL
     """
-    params = ()
+    params = [today]
+    where = []
     if category is not None:
-        sql += " WHERE b.category = ?"
-        params = (category,)
-    sql += " ORDER BY b.title"
+        where.append("b.category = ?")
+        params.append(category)
+    if initial is not None:
+        if initial == "0-9":
+            where.append("substr(b.title,1,1) GLOB '[0-9]'")
+        else:
+            where.append("b.title LIKE ?")
+            params.append(f"{initial}%")
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " GROUP BY b.id ORDER BY b.title"
 
     with get_db() as conn:
         rows = conn.execute(sql, params).fetchall()
+        # pessoa/email do empréstimo ativo mais recente (p/ exibição)
+        ref = {}
+        if rows:
+            ref_rows = conn.execute(
+                "SELECT book_id, person, email FROM loans "
+                "WHERE return_date IS NULL ORDER BY loan_date ASC, id ASC"
+            ).fetchall()
+            for rr in ref_rows:
+                ref[rr["book_id"]] = (rr["person"] or "", rr["email"] or "")
 
     result = []
     index = {} if books is not None else None
     for r in rows:
-        if r["available"]:
-            status, person, email = "Disponível", "", ""
+        copies = r["copies"] or 1
+        active = r["active"] or 0
+        avail = max(0, copies - active)
+        if avail > 0:
+            status = "Disponível"
+        elif r["overdue_active"]:
+            status = "Atrasado"
         else:
-            deadline = r["loan_deadline"]
-            status = "Atrasado" if (deadline and today > deadline) else "Alugado"
-            person = r["loan_person"] or ""
-            email = r["loan_email"] or ""
+            status = "Esgotado"
+        person, email = ref.get(r["id"], ("", ""))
         item = {
             "id": r["id"], "code": r["code"] or "", "title": r["title"],
             "author": r["author"], "category": r["category"] or "",
-            "person": person, "email": email, "status": status,
+            "copies": copies, "available_count": avail, "active": active,
+            "copies_label": f"{avail}/{copies}",
+            "person": person if active else "", "email": email if active else "",
+            "status": status,
         }
         if index is None:
             result.append(item)
@@ -118,7 +182,6 @@ def books_with_status(books=None, category=None):
 
     if index is None:
         return result
-    # Preserva a ordem/filtro da lista recebida
     return [index[b["id"]] for b in books if b["id"] in index]
 
 

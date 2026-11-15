@@ -85,5 +85,5 @@ def _start_jobs():
 
 init_db()
 setup_pages()
-ui.run(host="0.0.0.0", port=8080, title="Biblioteca SECRI", dark=True,
+ui.run(host="0.0.0.0", port=8080, title="Biblioteca SECRI",
        reload=False, storage_secret=auth.auth_secret())

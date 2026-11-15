@@ -37,6 +37,7 @@ def init_db():
                 author TEXT NOT NULL,
                 category TEXT,
                 year INTEGER,
+                copies INTEGER NOT NULL DEFAULT 1,
                 available INTEGER NOT NULL DEFAULT 1
             );
 
@@ -70,6 +71,12 @@ def init_db():
                 conn.execute(f"ALTER TABLE loans ADD COLUMN {col}")
             except Exception:
                 pass
+
+        # Migração idempotente: coluna copies em bancos antigos (default 1).
+        try:
+            conn.execute("ALTER TABLE books ADD COLUMN copies INTEGER NOT NULL DEFAULT 1")
+        except Exception:
+            pass
 
         # Remove coluna órfã de bancos antigos (SQLite >= 3.35 suporta DROP COLUMN)
         cols = [r["name"] for r in conn.execute("PRAGMA table_info(loans)").fetchall()]

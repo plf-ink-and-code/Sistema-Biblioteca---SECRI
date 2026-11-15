@@ -87,7 +87,7 @@ class TestLoanBook:
         services.add_book("T", "A")
         book_id = services.list_books()[0]["id"]
         services.loan_book(book_id, "P1")
-        with pytest.raises(ValueError, match="já está alugado"):
+        with pytest.raises(ValueError, match="exemplares dispon"):
             services.loan_book(book_id, "P2")
 
     def test_loan_not_found_raises(self):
@@ -297,7 +297,7 @@ class TestBooksWithStatus:
         future = (date.today() + timedelta(days=5)).isoformat()
         services.loan_book(book_id, "Ana", future, "ana@x.com")
         rows = services.books_with_status()
-        assert rows[0]["status"] == "Alugado"
+        assert rows[0]["status"] == "Esgotado"
         assert rows[0]["person"] == "Ana"
         assert rows[0]["email"] == "ana@x.com"
 
@@ -309,12 +309,12 @@ class TestBooksWithStatus:
         rows = services.books_with_status()
         assert rows[0]["status"] == "Atrasado"
 
-    def test_loaned_without_deadline_is_alugado(self):
+    def test_loaned_without_deadline_is_esgotado(self):
         services.add_book("T", "A")
         book_id = services.list_books()[0]["id"]
         services.loan_book(book_id, "Ana")
         rows = services.books_with_status()
-        assert rows[0]["status"] == "Alugado"
+        assert rows[0]["status"] == "Esgotado"
 
     def test_ordered_by_title(self):
         services.add_book("Zebra", "A")
